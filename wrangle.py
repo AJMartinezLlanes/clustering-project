@@ -5,10 +5,8 @@ import os
 
 import env
 
-
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
-
 
 
 def get_db_url(database):
@@ -16,6 +14,8 @@ def get_db_url(database):
     url = f'mysql+pymysql://{user}:{password}@{host}/{database}'
     return url
 
+
+# function to acquire zillow data
 def get_zillow_data():    
     
     '''This function will acquire data from zillow using env file and rename the columns before saving it as CSV'''
@@ -54,9 +54,10 @@ def get_zillow_data():
     df = pd.read_sql(query, get_db_url('zillow'))
     
 	# transfer dataframe into a csv for faster access
-	print('Saving to csv...')
+    print('Saving to csv...')
     df.to_csv(filename, index=False)
     return df
+
 
 # Function returns a dataframe with number of rows missing in a column 
 # and percentage of the column missing
@@ -70,6 +71,7 @@ def nulls_by_col(df):
     df_missing = pd.DataFrame({'number_missing_rows': num_rows_missing, 'percent_rows_missing': pct_rows_missing})
     return df_missing
 
+
 # Function returns a dataframe with number of rows missing 
 # and percentage of rows missing
 def nulls_by_row(df):
@@ -77,11 +79,13 @@ def nulls_by_row(df):
     This function will take a dataframe and 
     return a dataframe with null values and percentage by row 
     '''
+
     miss_df = pd.DataFrame(df.isna().sum(axis =1), columns = ['num_cols_missing']).reset_index().groupby('num_cols_missing')
     miss_df = miss_df.count().reset_index().rename(columns = {'index': 'num_rows' })
    
     miss_df['pct_cols_missing'] = miss_df.num_cols_missing/df.shape[1]
     return miss_df
+
 
 # This function handles the missing values by removing columns and rows with 50% nulls
 def handle_missing_values(df, prop_required_column = .5, prop_required_row = .5):
@@ -89,18 +93,19 @@ def handle_missing_values(df, prop_required_column = .5, prop_required_row = .5)
     function that will drop rows or columns based on the 
     percent of values that are missing
     '''
+
     n_required_column = round(df.shape[0] * prop_required_column)
     n_required_row = round(df.shape[1] * prop_required_row)
+   
     df = df.dropna(axis=0, thresh=n_required_row)
     df = df.dropna(axis=1, thresh=n_required_column)
+   
     return df  
 
 
 # This function will take in a dataframe and the columns to be removed
-def remove_columns(df, cols_to_remove):  
-	'''
-    This function will return a dataframe with indicated columns removed
-    '''
+def remove_columns(df, cols_to_remove):
+    '''This function will return a dataframe with indicated columns removed''' 
     df = df.drop(columns=cols_to_remove)
     return df
 
@@ -141,17 +146,17 @@ def min_max_scaler(train, valid, test):
 
 # This function takes all the small functions and combines them to get a clean zillow dataframe
 def wrangle_zillow(df):
-    '''
-    This function takes in a fresh copy of zillow data and cleans it. 
-    After this it will be easy to split
-    '''
+
+    # Get properties for single family 
+    single_fam = [260, 261, 263, 266, 264, 275]
+    df = df[df.propertylandusetypeid.isin(single_fam)]
+
     # Handle missing values i.e. drop columns and rows based on a threshold
     df = handle_missing_values(df)
         
     # drop columns not needed
     cols_to_remove = ['id', 'calculatedbathnbr', 'finishedsquarefeet12', 'fullbathcnt', 'roomcnt','propertycountylandusecode', 
-    'propertylandusetypeid', 'censustractandblock', 'rawcensustractandblock', 'assessmentyear']
-    
+    'propertylandusetypeid', 'censustractandblock', 'rawcensustractandblock', 'assessmentyear', 'heatingorsystemtypeid', 'regionidcity']
     df = remove_columns(df, cols_to_remove)
     
     # Columns to look for outliers
@@ -168,7 +173,7 @@ def wrangle_zillow(df):
     df = df.dropna()
     return df
 
-# 
+# function to split data
 def split_data(df):
     ''' 
     This function will take your clean dataframe and split it
