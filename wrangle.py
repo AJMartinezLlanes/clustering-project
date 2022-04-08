@@ -67,6 +67,7 @@ def nulls_by_col(df):
     return a dataframe with null values and percentage by column 
     '''
     num_rows_missing = df.isnull().sum()
+    num_rows = df.shape[0]
     pct_rows_missing = num_rows_missing/num_rows
     df_missing = pd.DataFrame({'number_missing_rows': num_rows_missing, 'percent_rows_missing': pct_rows_missing})
     return df_missing
